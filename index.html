@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artome — Internal Order Form</title>
+<style>
+:root{--orange:#ECAA1D;--navy:#154358;--black:#000;--white:#FFF;--dgrey:#262626;--mgrey:#7F7F7F;--lgrey:#D9D9D9;--bg:#F5F5F5}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--dgrey);line-height:1.5}
+.topbar{background:var(--white);border-bottom:3px solid var(--orange);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar h1{font-weight:900;font-size:18px;color:var(--navy);letter-spacing:.5px}
+.topbar .date{font-size:13px;color:var(--mgrey);font-weight:600}
+.container{max-width:860px;margin:0 auto;padding:24px 16px 100px}
+.section{background:var(--white);border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;margin-bottom:16px}
+.section-header{background:var(--navy);color:var(--white);padding:10px 16px;font-weight:700;font-size:14px}
+.section-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.field{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;font-weight:700;color:var(--mgrey);text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{border:1px solid var(--lgrey);border-radius:4px;padding:8px 10px;font-family:inherit;font-size:13px;color:var(--dgrey);background:var(--white);transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--orange)}
+.field input[readonly]{background:#f9f9f9;color:var(--mgrey)}
+.field textarea{resize:vertical}
+.field input.invalid,.field select.invalid{border-color:#e74c3c}
+.region-row{display:flex;gap:0;margin-bottom:4px}
+.region-row label{display:flex;align-items:center;gap:6px;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700;color:var(--white);background:var(--mgrey);transition:all .2s;border:none}
+.region-row label:first-child{border-radius:6px 0 0 6px}
+.region-row label:last-child{border-radius:0 6px 6px 0}
+.region-row input[type="radio"]{display:none}
+.region-row label:has(input:checked){background:var(--navy)}
+.email-info{font-size:11px;color:var(--mgrey);padding:4px 0 0;line-height:1.4}
+.email-info strong{color:var(--dgrey);font-weight:700}
+.order-type-row{display:flex;gap:8px;flex-wrap:wrap}
+.order-type-row label{display:flex;align-items:center;gap:6px;padding:8px 16px;border:2px solid var(--lgrey);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--dgrey);transition:all .2s}
+.order-type-row input[type="radio"]{accent-color:var(--orange)}
+.order-type-row label:has(input:checked){border-color:var(--orange);background:#FFF8E7}
+.same-as-customer{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none}
+.same-as-customer input[type="checkbox"]{accent-color:var(--orange);width:16px;height:16px}
+.po-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.po-upload .btn-upload{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--navy);color:var(--white);border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.po-upload .btn-upload:hover{opacity:.85}
+.po-upload .po-filename{font-size:13px;color:var(--dgrey);font-weight:600}
+.po-upload .po-remove{background:none;border:none;color:#e74c3c;cursor:pointer;font-size:16px;font-weight:700;padding:0 4px}
+.po-upload input[type="file"]{display:none}
+.table-wrap{overflow-x:auto;margin:0 -16px;padding:0 16px}
+table.products{width:100%;border-collapse:collapse;font-size:13px;min-width:780px}
+table.products th{text-align:left;font-size:10px;font-weight:700;color:var(--mgrey);text-transform:uppercase;letter-spacing:.5px;padding:6px 4px;border-bottom:2px solid var(--lgrey)}
+table.products td{padding:4px;vertical-align:middle}
+table.products tr:nth-child(even) td{background:#fafafa}
+table.products .row-num{width:24px;text-align:center;color:var(--mgrey);font-size:11px;font-weight:700}
+table.products select,table.products input{width:100%;border:1px solid var(--lgrey);border-radius:4px;padding:6px 4px;font-family:inherit;font-size:12px;color:var(--dgrey);background:var(--white)}
+table.products select:focus,table.products input:focus{outline:none;border-color:var(--orange)}
+table.products input[readonly]{background:#f9f9f9;color:var(--mgrey)}
+table.products select:disabled{background:#f5f5f5;color:#bbb}
+table.products .col-product{min-width:170px}
+table.products .col-sku{width:70px}
+table.products .col-socket{min-width:110px}
+table.products .col-door{min-width:120px}
+table.products .col-price{width:80px}
+table.products .col-qty{width:55px}
+table.products .col-subtotal{width:85px}
+.totals{display:flex;justify-content:flex-end;align-items:center;gap:24px;padding-top:12px;border-top:2px solid var(--lgrey);margin-top:8px}
+.totals .vat{font-size:12px;color:var(--mgrey)}
+.totals .total{font-size:16px;font-weight:800;color:var(--navy)}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--lgrey);padding:12px 24px;display:flex;justify-content:center;gap:12px;z-index:100}
+.btn{border:none;border-radius:6px;padding:10px 24px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--orange);color:var(--white)}
+.btn-secondary{background:var(--lgrey);color:var(--dgrey)}
+.btn-danger{background:#e74c3c;color:var(--white)}
+.form-footer{text-align:center;padding:24px 16px;font-size:12px;color:var(--mgrey)}
+@media print{
+  .topbar{position:static;border-bottom:2px solid var(--navy)}
+  .action-bar{display:none}
+  .region-row{display:none}
+  body{background:white}
+  .container{padding:0;max-width:100%}
+  .section{box-shadow:none;break-inside:avoid}
+  .section-header{background:var(--navy)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  table.products{font-size:10px;min-width:0}
+  table.products select,table.products input{border:none;padding:2px;font-size:10px}
+  .totals .total{font-size:14px}
+}
+@media(max-width:600px){
+  .field{min-width:100%}
+  .topbar{padding:10px 12px}
+  .topbar h1{font-size:16px}
+  .container{padding:12px 8px 100px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1 id="topbarTitle">Artome USA — Internal Order</h1>
+  <span class="date" id="orderDate"></span>
+</div>
+
+<div class="container">
+
+  <div class="section">
+    <div class="section-header">Region & Order Type</div>
+    <div class="section-body">
+      <div class="region-row">
+        <label><input type="radio" name="region" value="us" checked onchange="onRegionChange()"> USA</label>
+        <label><input type="radio" name="region" value="eu" onchange="onRegionChange()"> Europe</label>
+      </div>
+      <div class="order-type-row">
+        <label><input type="radio" name="orderType" value="client" checked onchange="onOrderTypeChange()"> Client / Reseller / Distributor</label>
+        <label id="stockOptionLabel"><input type="radio" name="orderType" value="stock" onchange="onOrderTypeChange()"> To Stock (Hayward Warehouse)</label>
+      </div>
+      <div class="email-info" id="emailInfo"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Customer Information</div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field" style="flex:2"><label>Company Name *</label><input type="text" id="customerCompany" required></div>
+        <div class="field"><label>Reference / PO Number</label><input type="text" id="customerRef"></div>
+      </div>
+      <div class="field" id="poAttachmentWrap">
+        <label>PO Attachment</label>
+        <div class="po-upload">
+          <button type="button" class="btn-upload" onclick="document.getElementById('poFile').click()">Choose PO File</button>
+          <input type="file" id="poFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onchange="onPoFileChange()">
+          <span class="po-filename" id="poFilename">No file selected</span>
+          <button type="button" class="po-remove" id="poRemove" onclick="clearPoFile()" style="display:none" title="Remove file">&times;</button>
+        </div>
+        <label class="same-as-customer" id="poOnlyWrap" style="display:none"><input type="checkbox" id="poOnly" onchange="onPoOnly()"> All details included in PO — skip product &amp; shipping details</label>
+      </div>
+      <div id="customerDetailFields">
+      <div class="field-row">
+        <div class="field"><label>Contact Person</label><input type="text" id="customerContact" placeholder="Full name"></div>
+      </div>
+      <div class="field"><label>Street Address</label><input type="text" id="customerStreet"></div>
+      <div class="field-row">
+        <div class="field" style="flex:2"><label>City</label><input type="text" id="customerCity"></div>
+        <div class="field"><label>State</label><input type="text" id="customerState"></div>
+        <div class="field"><label>ZIP Code</label><input type="text" id="customerZip"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Phone</label><input type="tel" id="customerPhone"></div>
+        <div class="field"><label>Email</label><input type="email" id="customerEmail"></div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="sectionProducts">
+    <div class="section-header">Products</div>
+    <div class="section-body">
+      <div class="table-wrap">
+        <table class="products">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="col-product">Product / Service</th>
+              <th class="col-sku">SKU</th>
+              <th class="col-socket">Power Socket</th>
+              <th class="col-door">Door Color</th>
+              <th class="col-price">Price</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-subtotal">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="productRows"></tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <span class="vat">VAT 0%</span>
+        <span class="total">Total: <span id="totalDisplay">0.00</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="sectionShipping">
+    <div class="section-header" id="shipSectionHeader">Shipping</div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field"><label>Delivery Time Wish</label><input type="text" id="deliveryTime" placeholder="e.g. ASAP, 4 weeks, Week 20"></div>
+      </div>
+      <label class="same-as-customer" id="sameAsCustomerWrap"><input type="checkbox" id="sameAsCustomer" onchange="onSameAsCustomer()"> Same as customer information</label>
+      <div id="shipFields">
+      <div class="field-row">
+        <div class="field" style="flex:2"><label>Recipient Name *</label><input type="text" id="shipName" placeholder="Company or person name"></div>
+        <div class="field"><label>Attn / Contact Person</label><input type="text" id="shipContact" placeholder="Contact person"></div>
+      </div>
+      <div class="field"><label>Street Address</label><input type="text" id="shipStreet"></div>
+      <div class="field-row">
+        <div class="field" style="flex:2"><label>City</label><input type="text" id="shipCity"></div>
+        <div class="field"><label>State</label><input type="text" id="shipState"></div>
+        <div class="field"><label>ZIP Code</label><input type="text" id="shipZip"></div>
+      </div>
+      <div class="field"><label>Country</label><input type="text" id="shipCountry" value="United States"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="sectionTerms" style="display:none">
+    <div class="section-header">Terms</div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Payment Terms</label>
+          <select id="paymentTerms" onchange="onPaymentTermsChange()">
+            <option value="">—</option>
+            <option value="Prepayment">Prepayment</option>
+            <option value="Net 7">Net 7</option>
+            <option value="Net 14">Net 14</option>
+            <option value="Net 30" selected>Net 30</option>
+            <option value="Net 60">Net 60</option>
+            <option value="Net 90">Net 90</option>
+            <option value="50% advance + 50% on delivery">50% advance + 50% on delivery</option>
+            <option value="__other">Other…</option>
+          </select>
+          <input type="text" id="paymentTermsOther" placeholder="Specify payment terms" style="display:none">
+        </div>
+        <div class="field">
+          <label>Delivery Terms (Incoterms)</label>
+          <select id="deliveryTerms">
+            <option value="">—</option>
+            <option value="EXW">EXW — Ex Works</option>
+            <option value="FCA">FCA — Free Carrier</option>
+            <option value="CPT">CPT — Carriage Paid To</option>
+            <option value="CIP">CIP — Carriage &amp; Insurance Paid To</option>
+            <option value="DAP" selected>DAP — Delivered at Place</option>
+            <option value="DPU">DPU — Delivered at Place Unloaded</option>
+            <option value="DDP">DDP — Delivered Duty Paid</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Sales Representative</div>
+    <div class="section-body">
+      <div class="field-row">
+        <div class="field"><label>Name</label><input type="text" id="repName"></div>
+        <div class="field"><label>Phone</label><input type="tel" id="repPhone"></div>
+        <div class="field"><label>Email</label><input type="email" id="repEmail" oninput="updateEmailInfo()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="sectionComments">
+    <div class="section-header">Comments</div>
+    <div class="section-body">
+      <div class="field"><textarea id="comments" rows="3" placeholder="Additional notes or instructions..."></textarea></div>
+    </div>
+  </div>
+
+  <div class="form-footer" id="formFooter">Artome USA LLC &middot; 680 S. Cache St. 100-7043 &middot; Jackson WY 83001 &middot; USA</div>
+
+</div>
+
+<div class="action-bar">
+  <button class="btn btn-primary" onclick="submitOrder()">Submit Order via Email</button>
+  <button class="btn btn-secondary" onclick="window.print()">Print</button>
+  <button class="btn btn-danger" onclick="resetForm()">Reset</button>
+</div>
+
+<script>
+// === CONFIGURATION ===
+const REGIONS = {
+  us: {
+    label: 'Artome USA',
+    email: 'order@artomeusa.com',
+    cc: 'shipping@artomeusa.com',
+    footer: 'Artome USA LLC \u00b7 680 S. Cache St. 100-7043 \u00b7 Jackson WY 83001 \u00b7 USA',
+    hasWarehouse: true,
+    warehouseAddress: {shipName:'Artome USA LLC',shipContact:'',shipStreet:'31101 Wiegman Rd',shipCity:'Hayward',shipState:'CA',shipZip:'94544',shipCountry:'United States'},
+    defaultCountry: 'United States',
+    defaultSocket: 'B - USA'
+  },
+  eu: {
+    label: 'Artome Europe',
+    email: 'order@artome.fi',
+    cc: '',
+    footer: 'Artome Oy \u00b7 Syrj\u00e4l\u00e4ntie 81 \u00b7 19110 Heinola \u00b7 Finland',
+    hasWarehouse: false,
+    warehouseAddress: {},
+    defaultCountry: '',
+    defaultSocket: 'F - EUROPE'
+  }
+};
+const MAX_ROWS = 12;
+
+function getRegion() {
+  return document.querySelector('input[name="region"]:checked').value;
+}
+function R() { return REGIONS[getRegion()]; }
+
+// === PRODUCT DATA ===
+const PRODUCTS = [
+  {sku:'A00757',name:'Artome S1',cat:'PLATFORMS'},
+  {sku:'A00777',name:'Artome S2',cat:'PLATFORMS'},
+  {sku:'A00523',name:'Artome M10 (White frame)',cat:'PLATFORMS'},
+  {sku:'A00524',name:'Artome M10 (Black frame)',cat:'PLATFORMS'},
+  {sku:'A01250',name:'Artome X10',cat:'PLATFORMS'},
+  {sku:'A00589',name:'Artome X20 (White frame)',cat:'PLATFORMS'},
+  {sku:'A00590',name:'Artome X20 (Black frame)',cat:'PLATFORMS'},
+  {sku:'A00922',name:'Artome S1 / S2 / M10 Custom Door Color',cat:'CUSTOMIZATIONS (DOORS)'},
+  {sku:'A01002',name:'Artome X10 Custom Door Color',cat:'CUSTOMIZATIONS (DOORS)'},
+  {sku:'A00923',name:'Artome X20 Custom Door Color',cat:'CUSTOMIZATIONS (DOORS)'},
+  {sku:'A00972',name:'Artome S1 / S2 / M10 Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A01001',name:'Artome X10 Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A00973',name:'Artome X20 Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A00970',name:'Artome Table',cat:'ACCESSORIES'},
+  {sku:'A00971',name:'Artome Soft Cover + Table Bundle',cat:'ACCESSORIES'},
+  {sku:'A01231',name:'Artome S1 / S2 / M10 Flight Case + Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A01282',name:'Artome X10 Flight Case + Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A01232',name:'Artome X20 Flight Case + Soft Cover',cat:'ACCESSORIES'},
+  {sku:'A09998',name:'Service',cat:'OTHER'},
+  {sku:'A09999',name:'Shipping',cat:'OTHER'},
+];
+
+const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.sku, p]));
+
+const SOCKETS = ['F - EUROPE','J - SWITZERLAND','B - USA','G - UK/UAE','I - AUS/NZ'];
+const DOORS = ['M10/S2 - Black','M10/S2 - Walnut','M10/S2 - Nevada','S1 - Black','S1 - Beige','S1 - Green','X20 - Black','X20 - Walnut','X10 - Black','Custom','Custom logo'];
+function buildOptions(items, useValue) {
+  return '<option value=""></option>' + items.map(v => `<option value="${useValue ? v : v}">${v}</option>`).join('');
+}
+
+function buildProductOptions() {
+  let html = '<option value="">—</option>';
+  const cats = [...new Set(PRODUCTS.map(p => p.cat))];
+  for (const cat of cats) {
+    html += `<optgroup label="${cat}">`;
+    for (const p of PRODUCTS.filter(x => x.cat === cat)) {
+      html += `<option value="${p.sku}">${p.name}</option>`;
+    }
+    html += '</optgroup>';
+  }
+  return html;
+}
+
+function renderRows() {
+  const tbody = document.getElementById('productRows');
+  const prodOpts = buildProductOptions();
+  const socketOpts = buildOptions(SOCKETS);
+  const doorOpts = buildOptions(DOORS);
+  let html = '';
+  for (let i = 0; i < MAX_ROWS; i++) {
+    html += `<tr>
+      <td class="row-num">${i+1}</td>
+      <td class="col-product"><select data-row="${i}" data-field="product" onchange="onProductChange(${i})">${prodOpts}</select></td>
+      <td class="col-sku"><input type="text" data-row="${i}" data-field="sku" readonly tabindex="-1"></td>
+      <td class="col-socket"><select data-row="${i}" data-field="socket">${socketOpts}</select></td>
+      <td class="col-door"><select data-row="${i}" data-field="door">${doorOpts}</select></td>
+      <td class="col-price"><input type="number" data-row="${i}" data-field="price" min="0" step="0.01" oninput="recalcRow(${i})"></td>
+      <td class="col-qty"><input type="number" data-row="${i}" data-field="qty" min="0" step="1" oninput="recalcRow(${i})"></td>
+      <td class="col-subtotal"><input type="text" data-row="${i}" data-field="subtotal" readonly tabindex="-1"></td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function f(row, field) {
+  return document.querySelector(`[data-row="${row}"][data-field="${field}"]`);
+}
+
+function onProductChange(row) {
+  const sku = f(row,'product').value;
+  const skuField = f(row,'sku');
+  if (sku && PRODUCT_MAP[sku]) {
+    skuField.value = sku;
+  } else {
+    skuField.value = '';
+  }
+}
+
+function onPoFileChange() {
+  const input = document.getElementById('poFile');
+  const label = document.getElementById('poFilename');
+  const removeBtn = document.getElementById('poRemove');
+  if (input.files.length > 0) {
+    label.textContent = input.files[0].name;
+    removeBtn.style.display = '';
+    document.getElementById('poOnlyWrap').style.display = '';
+  } else {
+    label.textContent = 'No file selected';
+    removeBtn.style.display = 'none';
+    document.getElementById('poOnlyWrap').style.display = 'none';
+    document.getElementById('poOnly').checked = false;
+    onPoOnly();
+  }
+}
+
+function clearPoFile() {
+  document.getElementById('poFile').value = '';
+  document.getElementById('poFilename').textContent = 'No file selected';
+  document.getElementById('poRemove').style.display = 'none';
+  document.getElementById('poOnlyWrap').style.display = 'none';
+  document.getElementById('poOnly').checked = false;
+  onPoOnly();
+}
+
+function onPaymentTermsChange() {
+  const sel = document.getElementById('paymentTerms');
+  const other = document.getElementById('paymentTermsOther');
+  other.style.display = sel.value === '__other' ? '' : 'none';
+  if (sel.value !== '__other') other.value = '';
+}
+
+const PO_ONLY_HIDE = ['customerDetailFields','sectionProducts','sectionShipping','sectionTerms','sectionComments'];
+function onPoOnly() {
+  const hide = document.getElementById('poOnly').checked;
+  PO_ONLY_HIDE.forEach(id => {
+    document.getElementById(id).style.display = hide ? 'none' : '';
+  });
+}
+
+function getOrderType() {
+  return document.querySelector('input[name="orderType"]:checked').value;
+}
+
+const SHIP_FIELD_IDS = ['shipName','shipContact','shipStreet','shipCity','shipState','shipZip','shipCountry'];
+
+function onSameAsCustomer() {
+  const checked = document.getElementById('sameAsCustomer').checked;
+  const fields = document.getElementById('shipFields');
+  if (checked) {
+    document.getElementById('shipName').value = document.getElementById('customerCompany').value;
+    document.getElementById('shipContact').value = document.getElementById('customerContact').value;
+    document.getElementById('shipStreet').value = document.getElementById('customerStreet').value;
+    document.getElementById('shipCity').value = document.getElementById('customerCity').value;
+    document.getElementById('shipState').value = document.getElementById('customerState').value;
+    document.getElementById('shipZip').value = document.getElementById('customerZip').value;
+    document.getElementById('shipCountry').value = R().defaultCountry;
+    fields.style.display = 'none';
+  } else {
+    fields.style.display = '';
+  }
+}
+
+function updateEmailInfo() {
+  const r = R();
+  const repEmail = document.getElementById('repEmail').value;
+  const ccParts = [r.cc, repEmail].filter(Boolean);
+  let html = '<strong>To:</strong> ' + r.email;
+  if (ccParts.length) html += ' &nbsp; <strong>CC:</strong> ' + ccParts.join(', ');
+  document.getElementById('emailInfo').innerHTML = html;
+}
+
+function onRegionChange() {
+  const r = R();
+  document.getElementById('topbarTitle').textContent = r.label + ' — Internal Order';
+  document.getElementById('formFooter').textContent = r.footer;
+  updateEmailInfo();
+  document.getElementById('sectionTerms').style.display = r.hasWarehouse ? 'none' : '';
+  const stockLabel = document.getElementById('stockOptionLabel');
+  if (r.hasWarehouse) {
+    stockLabel.style.display = '';
+  } else {
+    stockLabel.style.display = 'none';
+    if (getOrderType() === 'stock') {
+      document.querySelector('input[name="orderType"][value="client"]').checked = true;
+    }
+  }
+  // Update socket defaults
+  const prevRegion = getRegion() === 'us' ? 'eu' : 'us';
+  const prevDefault = REGIONS[prevRegion].defaultSocket;
+  const newDefault = r.defaultSocket;
+  for (let i = 0; i < MAX_ROWS; i++) {
+    const sock = f(i, 'socket');
+    if (sock.value === '' || sock.value === prevDefault) {
+      sock.value = newDefault;
+    }
+  }
+  // Update country default if not readonly and empty or was previous default
+  const countryEl = document.getElementById('shipCountry');
+  if (!countryEl.readOnly) {
+    const prevCountry = REGIONS[prevRegion].defaultCountry;
+    if (countryEl.value === '' || countryEl.value === prevCountry) {
+      countryEl.value = r.defaultCountry;
+    }
+  }
+  onOrderTypeChange();
+}
+
+function onOrderTypeChange() {
+  const type = getOrderType();
+  const r = R();
+  const header = document.getElementById('shipSectionHeader');
+  const isStock = type === 'stock' && r.hasWarehouse;
+  const sameWrap = document.getElementById('sameAsCustomerWrap');
+  const sameCb = document.getElementById('sameAsCustomer');
+  header.textContent = isStock ? 'Shipping — Hayward Warehouse' : 'Shipping';
+  document.getElementById('poAttachmentWrap').style.display = isStock ? 'none' : '';
+  if (isStock) {
+    clearPoFile();
+    sameWrap.style.display = 'none';
+    sameCb.checked = false;
+    document.getElementById('shipFields').style.display = '';
+  } else {
+    sameWrap.style.display = '';
+  }
+  SHIP_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (isStock) {
+      el.value = r.warehouseAddress[id] || '';
+      el.readOnly = true;
+    } else {
+      if (el.readOnly) el.value = id === 'shipCountry' ? r.defaultCountry : '';
+      el.readOnly = false;
+    }
+  });
+}
+
+function recalcRow(row) {
+  const price = parseFloat(f(row,'price').value) || 0;
+  const qty = parseInt(f(row,'qty').value) || 0;
+  const sub = price * qty;
+  f(row,'subtotal').value = sub > 0 ? sub.toFixed(2) : '';
+  recalcTotal();
+}
+
+function recalcTotal() {
+  let total = 0;
+  for (let i = 0; i < MAX_ROWS; i++) {
+    total += parseFloat(f(i,'subtotal').value) || 0;
+  }
+  document.getElementById('totalDisplay').textContent = total.toFixed(2);
+}
+
+function validateForm() {
+  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+  const errors = [];
+  const company = document.getElementById('customerCompany');
+  if (!company.value.trim()) {
+    company.classList.add('invalid');
+    errors.push('Company name is required.');
+  }
+  const poOnly = document.getElementById('poOnly').checked;
+  if (!poOnly) {
+    let hasLine = false;
+    for (let i = 0; i < MAX_ROWS; i++) {
+      if (f(i,'product').value && (parseInt(f(i,'qty').value) || 0) > 0) {
+        hasLine = true;
+        break;
+      }
+    }
+    if (!hasLine) errors.push('At least one product with quantity is required.');
+  }
+  if (errors.length) {
+    alert('Please fix:\n\n' + errors.join('\n'));
+    return false;
+  }
+  return true;
+}
+
+function submitOrder() {
+  if (!validateForm()) return;
+
+  const r = R();
+  const date = document.getElementById('orderDate').textContent;
+  const orderType = getOrderType();
+  const typeLabels = {client:'Client / Reseller / Distributor',stock:'To Stock (Hayward Warehouse)'};
+  const company = document.getElementById('customerCompany').value;
+  const custContact = document.getElementById('customerContact').value;
+  const custStreet = document.getElementById('customerStreet').value;
+  const custCity = document.getElementById('customerCity').value;
+  const custState = document.getElementById('customerState').value;
+  const custZip = document.getElementById('customerZip').value;
+  const custAddr = [custStreet, [custCity, custState, custZip].filter(Boolean).join(', ')].filter(Boolean).join('\n');
+  const phone = document.getElementById('customerPhone').value;
+  const email = document.getElementById('customerEmail').value;
+  const ref = document.getElementById('customerRef').value;
+  const poFile = document.getElementById('poFile');
+  const poFileName = poFile.files.length > 0 ? poFile.files[0].name : '';
+
+  let lines = '';
+  for (let i = 0; i < MAX_ROWS; i++) {
+    const sku = f(i,'product').value;
+    if (!sku) continue;
+    const p = PRODUCT_MAP[sku];
+    const socket = f(i,'socket').value;
+    const door = f(i,'door').value;
+    const price = f(i,'price').value || '0';
+    const qty = f(i,'qty').value || '0';
+    const sub = f(i,'subtotal').value || '0';
+    let line = `${p.name} (${sku})`;
+    if (socket) line += ` | Socket: ${socket}`;
+    if (door) line += ` | Door: ${door}`;
+    line += ` | Price: ${price} | Qty: ${qty} | Subtotal: ${sub}`;
+    lines += line + '\n';
+  }
+
+  const total = document.getElementById('totalDisplay').textContent;
+  const delTime = document.getElementById('deliveryTime').value;
+  const shipName = document.getElementById('shipName').value;
+  const shipContact = document.getElementById('shipContact').value;
+  const shipStreet = document.getElementById('shipStreet').value;
+  const shipCity = document.getElementById('shipCity').value;
+  const shipState = document.getElementById('shipState').value;
+  const shipZip = document.getElementById('shipZip').value;
+  const shipCountry = document.getElementById('shipCountry').value;
+  const shipAddr = [shipName, shipContact ? `Attn: ${shipContact}` : '', shipStreet, [shipCity, shipState, shipZip].filter(Boolean).join(', '), shipCountry].filter(Boolean).join('\n');
+  const repName = document.getElementById('repName').value;
+  const repPhone = document.getElementById('repPhone').value;
+  const repEmail = document.getElementById('repEmail').value;
+  const comments = document.getElementById('comments').value;
+
+  const poOnly = document.getElementById('poOnly').checked;
+  const subject = `Internal Order - ${company} - ${ref || date}`;
+  const bodyParts = [
+    `INTERNAL ORDER — ${r.label.toUpperCase()}`,
+    `Date: ${date}`,
+    `Order Type: ${typeLabels[orderType]}`,
+    ``,
+    `CUSTOMER / BUYER`,
+    `Company: ${company}`,
+    custContact ? `Contact: ${custContact}` : '',
+    custAddr ? `Address:\n${custAddr}` : '',
+    phone ? `Phone: ${phone}` : '',
+    email ? `Email: ${email}` : '',
+    ref ? `Reference: ${ref}` : '',
+    poFileName ? `PO Attached: ${poFileName}` : '',
+  ];
+  if (poOnly) {
+    bodyParts.push('', '*** All product, shipping, and pricing details are included in the attached PO ***');
+  } else {
+    bodyParts.push(
+      ``,
+      `PRODUCTS`,
+      lines.trim(),
+      ``,
+      `VAT: 0%`,
+      `TOTAL: ${total}`,
+      ``,
+      `SHIPPING`,
+      delTime ? `Requested Delivery: ${delTime}` : '',
+      `Ship To:`,
+      shipAddr || '',
+    );
+  }
+  if (!r.hasWarehouse) {
+    const payRaw = document.getElementById('paymentTerms').value;
+    const payTerms = payRaw === '__other' ? document.getElementById('paymentTermsOther').value.trim() : payRaw;
+    const delTerms = document.getElementById('deliveryTerms').value;
+    if (payTerms || delTerms) {
+      bodyParts.push('', 'TERMS');
+      if (payTerms) bodyParts.push(`Payment: ${payTerms}`);
+      if (delTerms) bodyParts.push(`Delivery: ${delTerms}`);
+    }
+  }
+  bodyParts.push(
+    ``,
+    repName ? `SALES REP` : '',
+    repName ? `Name: ${repName}` : '',
+    repPhone ? `Phone: ${repPhone}` : '',
+    repEmail ? `Email: ${repEmail}` : '',
+    ``,
+    comments ? `COMMENTS` : '',
+    comments || '',
+    ``,
+    `---`,
+    r.footer
+  );
+  const body = bodyParts.filter(l => l !== '').join('\n');
+
+  const ccList = [r.cc, repEmail].filter(Boolean).join(',');
+  const mailto = `mailto:${r.email}?cc=${encodeURIComponent(ccList)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  if (mailto.length > 2000) {
+    alert('Note: The order is long and may be truncated in some email clients. Consider using Print as backup documentation.');
+  }
+
+  if (poFileName) {
+    alert(`Remember to attach "${poFileName}" to the email before sending.`);
+  }
+
+  window.location.href = mailto;
+}
+
+function resetForm() {
+  if (!confirm('Reset the form? All entered data will be lost.')) return;
+  document.querySelectorAll('input:not([type="radio"]), textarea').forEach(el => {
+    el.readOnly = false;
+    el.value = '';
+  });
+  document.querySelectorAll('select:not([name="region"])').forEach(el => { el.selectedIndex = 0; });
+  document.querySelectorAll('[data-field="sku"]').forEach(el => { el.value = ''; });
+  document.querySelectorAll('[data-field="subtotal"]').forEach(el => { el.value = ''; });
+  document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+  document.querySelector('input[name="orderType"][value="client"]').checked = true;
+  document.getElementById('sameAsCustomer').checked = false;
+  clearPoFile();
+  document.getElementById('shipFields').style.display = '';
+  const r = R();
+  document.getElementById('shipCountry').value = r.defaultCountry;
+  // Apply region socket defaults
+  for (let i = 0; i < MAX_ROWS; i++) {
+    f(i, 'socket').value = r.defaultSocket;
+  }
+  onOrderTypeChange();
+  recalcTotal();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const d = new Date();
+  document.getElementById('orderDate').textContent = d.toISOString().split('T')[0];
+  renderRows();
+  onRegionChange();
+});
+</script>
+</body>
+</html>
